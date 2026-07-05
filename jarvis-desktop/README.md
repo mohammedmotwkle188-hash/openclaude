@@ -1,0 +1,163 @@
+# J.A.R.V.I.S. Desktop
+
+A holographic-HUD desktop AI assistant, built with Electron + React + TypeScript.
+Black/cyan/orange glassmorphic interface, live system monitoring, multi-provider AI
+chat with local encrypted memory, browser-based voice (wake word + British TTS), and
+a natural-language command engine for controlling the desktop.
+
+## Architecture
+
+```
+jarvis-desktop/
+  electron/            Main process (Node) — the only place with OS/API-key access
+    main.ts            Window creation, security policy (external nav blocked)
+    preload.ts          contextBridge surface exposed to the renderer as window.jarvis
+    store.ts            Local JSON settings/API-key persistence
+    services/
+      ai/               Anthropic / OpenAI / Gemini / Ollama adapters + fallback router
+      system/           Stats polling, command parser + dispatcher, web data (weather/news/stocks/crypto)
+      memory/           better-sqlite3 store + AES-256-GCM field encryption
+      screen/           Screenshot capture + Tesseract OCR
+    ipc/                One file per IPC surface, registered from main.ts
+  src/                  Renderer (React) — the HUD, no direct Node/OS access
+    components/hud      Radar/orb centerpiece, top status bar
+    components/panels    Left (system vitals), right (chat/thoughts/alerts/schedule), bottom (terminal)
+    lib/voice           Web Speech API wake-word engine + TTS voice selection
+    lib/commands        Renderer-side command dispatch (parse → confirm-if-dangerous → execute)
+    state/store.ts       zustand store
+  shared/types.ts        Type contracts shared by main + renderer (IPC channel names live here)
+```
+
+All AI provider calls and API keys stay in the main process; the renderer never sees a
+raw key — it only talks to `window.jarvis.*`, a typed IPC bridge installed via
+`contextBridge` with `nodeIntegration: false` / `contextIsolation: true`. Outbound
+in-app navigation is blocked and forced to the OS browser.
+
+## Setup
+
+Requires Node.js ≥ 20 (Electron 33's floor).
+
+```bash
+npm install
+npm run dev          # Vite dev server for the HUD, hot reload
+npm run dev:electron # in a second terminal — compiles main/preload and launches Electron pointed at the dev server
+```
+
+Production build:
+
+```bash
+npm run build        # renderer (vite build) + main process (tsc)
+npm start             # build + launch
+npm run package       # electron-builder — produces a dmg/nsis/AppImage in release/
+```
+
+`better-sqlite3` ships a native binding. If you see a Node ABI mismatch when running
+under packaged Electron, run `npx electron-rebuild` once after `npm install`.
+
+## Configure API keys and providers
+
+Open **Settings** (gear icon, bottom-right of the terminal bar) and enter keys for
+whichever providers you use:
+
+- **Anthropic** — Claude, used for the main assistant persona by default
+- **OpenAI** — GPT, also used for screen/image analysis (vision)
+- **Google Gemini**
+- **Ollama** — no key needed; point "Ollama base URL" at a local `ollama serve` (default `http://127.0.0.1:11434`)
+- **OpenWeather** / **NewsAPI** — optional, unlock the Weather and News widgets
+
+Drag providers in "AI Model Fallback Order" to set which one is tried first; if a
+provider errors or isn't configured, the router automatically falls through to the
+next one. Stock and crypto quotes use keyless public endpoints (Stooq, CoinGecko) and
+need no setup.
+
+## Voice
+
+Voice uses the browser **Web Speech API** built into Electron's Chromium — no external
+speech service is wired up, so there's no extra key to configure, but recognition
+quality depends on Chromium's built-in engine and an internet connection (Chromium's
+on-device recognizer is limited). Say **"Jarvis"** to wake it, or click the mic button
+to talk without the wake word.
+
+Text-to-speech picks the best installed `en-GB` voice it can find (preferring names
+like "Google UK English Male" or "Daniel") and lets you pick a specific installed voice
+in Settings → Voice. If your OS has no English (UK) voice pack installed, install one —
+Jarvis will fall back to the closest available voice rather than failing silently.
+Speaking is interrupted automatically the moment the mic picks up your voice again.
+
+## Command engine
+
+Type or say things like:
+
+```
+open chrome · open spotify · play music · pause music · stop music
+shut down · restart          → both require an on-screen confirmation
+search google for pikachu · search youtube for lofi beats
+set volume to 40 · set brightness to 60
+take a screenshot · open camera
+open folder ~/Documents · create file notes.txt · delete file draft.txt · rename x.txt to y.txt
+weather · weather in tokyo · news · stock aapl · crypto bitcoin
+```
+
+Anything that doesn't match a known pattern is handed to the conversational AI instead.
+File operations are sandboxed to your home directory; destructive actions (shutdown,
+restart, delete) always show a confirmation dialog before running.
+
+## Screen understanding
+
+- **Take a screenshot** saves a PNG to `Pictures/Jarvis Screenshots`.
+- **Analyze Screen Now** (Alerts tab) captures the screen and sends it to a
+  vision-capable provider (Anthropic/OpenAI/Gemini) along with your question, for real
+  multimodal analysis of what's on screen.
+- **Live Screen Monitor** (Alerts tab) polls a screenshot every 15s, runs it through
+  Tesseract OCR, and posts the extracted text as a notification — a lightweight,
+  local-only way to keep a running text log of what's visible without spending API
+  calls on every tick.
+
+## Memory & security
+
+Chat history and remembered facts live in a local SQLite file
+(`<userData>/jarvis-memory.db`). Set a passphrase in **Settings → Security & Memory**
+to encrypt message bodies and facts at rest with AES-256-GCM (key derived via scrypt).
+Without a passphrase, data is stored in plaintext locally — set one before relying on
+this for anything sensitive. There's no recovery path if you forget the passphrase, by
+design.
+
+## What's genuinely implemented vs. what's an extension point
+
+Built and working: HUD UI with radar/rings/sweep/glassmorphism, live system stats,
+multi-provider streaming chat with fallback, encrypted local memory, wake-word +
+British TTS voice with interrupt, the command engine above, screenshot+OCR, live
+screen monitor, vision-based screen analysis, weather/news/stock/crypto, reminders,
+notifications, and a confirmation gate on destructive actions.
+
+Deliberately **not** wired to real third-party infrastructure in this build — the
+architecture leaves a clear seam to add each of these, but none of them talk to a live
+external account out of the box:
+
+- **Cloud sync** — no backend exists to sync to; `memory/db.ts` is local-only. Point it
+  at your own sync service (e.g. Supabase/Postgres) if you need multi-device memory.
+- **Password-vault integration** (1Password/Bitwarden) — would need their respective
+  SDKs and your real vault credentials; not something to fake.
+- **Full keyboard/mouse automation** (clicking/typing into arbitrary apps) — clipboard,
+  window-focus, and media-key control are implemented; full cursor/keystroke automation
+  needs a native addon (`nut.js`/`robotjs`) rebuilt against Electron's Node ABI, which
+  wasn't buildable in this sandbox (no display, no network path to prebuilt binaries).
+- **Calendar sync** — `calendar:list` returns an empty list; wire up CalDAV/Google
+  Calendar OAuth to make it live.
+- **Volume/brightness on Windows** use a keystroke-simulation fallback (no native CLI
+  shipped by Windows); Linux volume/brightness need `amixer`/`pactl`/`brightnessctl`
+  installed, which most desktop distros already have.
+
+## Verification performed in this environment
+
+This sandbox has no display server and no network path to Electron's own binary CDN
+(blocked at the proxy), so the packaged app itself could not be launched and
+visually verified here. What *was* verified:
+
+- `npx tsc -b --noEmit` — renderer typechecks clean
+- `npx tsc -p electron/tsconfig.json --noEmit` — main process typechecks clean
+- `npx vite build` — renderer bundles successfully
+- `npx tsc -p electron/tsconfig.json` — main process compiles to `dist-electron/`
+- `better-sqlite3`'s native binding built successfully during `npm install`
+
+Run `npm run dev` + `npm run dev:electron` on a real desktop to see it live.
