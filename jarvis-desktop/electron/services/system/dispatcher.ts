@@ -1,6 +1,8 @@
 import type { CommandResult, ParsedCommand } from "../../../shared/types";
 import * as cmds from "./commands";
 import { captureScreenshot } from "../screen/capture";
+import * as automation from "./automation";
+import { locateOnScreen } from "../ai/vision";
 
 export async function executeCommand(cmd: ParsedCommand): Promise<CommandResult> {
   try {
@@ -51,6 +53,53 @@ async function run(cmd: ParsedCommand): Promise<string> {
       return cmds.moveFile(cmd.args.from, cmd.args.to);
     case "rename_file":
       return cmds.renameFile(cmd.args.path, cmd.args.name);
+
+    case "click": {
+      await automation.clickAt();
+      return "Clicked.";
+    }
+    case "click_on": {
+      const loc = await locateOnScreen(cmd.args.target);
+      await automation.clickAt(loc.xFrac, loc.yFrac);
+      return `Clicked on "${cmd.args.target}".`;
+    }
+    case "double_click": {
+      await automation.doubleClickAt();
+      return "Double-clicked.";
+    }
+    case "double_click_on": {
+      const loc = await locateOnScreen(cmd.args.target);
+      await automation.doubleClickAt(loc.xFrac, loc.yFrac);
+      return `Double-clicked on "${cmd.args.target}".`;
+    }
+    case "right_click": {
+      await automation.clickAt(undefined, undefined, "right");
+      return "Right-clicked.";
+    }
+    case "right_click_on": {
+      const loc = await locateOnScreen(cmd.args.target);
+      await automation.clickAt(loc.xFrac, loc.yFrac, "right");
+      return `Right-clicked on "${cmd.args.target}".`;
+    }
+    case "type_text":
+      return automation.typeText(cmd.args.text);
+    case "press_key":
+      return automation.pressKeyCombo(cmd.args.combo);
+    case "scroll":
+      return automation.scroll(cmd.args.direction as "up" | "down" | "left" | "right");
+    case "hotkey_copy":
+      return automation.hotkey("copy");
+    case "hotkey_paste":
+      return automation.hotkey("paste");
+    case "hotkey_cut":
+      return automation.hotkey("cut");
+    case "hotkey_undo":
+      return automation.hotkey("undo");
+    case "hotkey_redo":
+      return automation.hotkey("redo");
+    case "hotkey_selectall":
+      return automation.hotkey("selectAll");
+
     default:
       throw new Error(`Unknown action "${cmd.action}". Weather/news/stock/crypto route through their own IPC channels.`);
   }

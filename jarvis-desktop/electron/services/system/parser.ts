@@ -34,6 +34,23 @@ const rules: Rule[] = [
   { test: /^news$/i, action: "news", risk: "safe", label: () => "Latest headlines", args: () => ({}) },
   { test: /^stock(?:s)? (?:price )?(?:for |of )?([A-Za-z.]{1,6})$/i, action: "stock", risk: "safe", label: (m) => `Stock price: ${m[1].toUpperCase()}`, args: (m) => ({ symbol: m[1] }) },
   { test: /^crypto(?: price)? (?:for |of )?(\w{2,10})$/i, action: "crypto", risk: "safe", label: (m) => `Crypto price: ${m[1].toUpperCase()}`, args: (m) => ({ symbol: m[1] }) },
+
+  // Computer control — real mouse/keyboard automation (see electron/services/system/automation.ts).
+  { test: /^(?:double[- ]click) (?:on |the )(.+)$/i, action: "double_click_on", risk: "safe", label: (m) => `Double-click on "${m[1]}"`, args: (m) => ({ target: m[1] }) },
+  { test: /^(?:double[- ]click)$/i, action: "double_click", risk: "safe", label: () => "Double-click", args: () => ({}) },
+  { test: /^right[- ]click (?:on |the )(.+)$/i, action: "right_click_on", risk: "safe", label: (m) => `Right-click on "${m[1]}"`, args: (m) => ({ target: m[1] }) },
+  { test: /^right[- ]click$/i, action: "right_click", risk: "safe", label: () => "Right-click", args: () => ({}) },
+  { test: /^(?:click|tap) (?:on |the )(.+)$/i, action: "click_on", risk: "safe", label: (m) => `Click on "${m[1]}"`, args: (m) => ({ target: m[1] }) },
+  { test: /^(?:click|tap)$/i, action: "click", risk: "safe", label: () => "Click", args: () => ({}) },
+  { test: /^type (.+)$/i, action: "type_text", risk: "safe", label: (m) => `Type "${m[1]}"`, args: (m) => ({ text: m[1] }) },
+  { test: /^press (.+)$/i, action: "press_key", risk: "safe", label: (m) => `Press ${m[1]}`, args: (m) => ({ combo: m[1] }) },
+  { test: /^scroll (up|down|left|right)$/i, action: "scroll", risk: "safe", label: (m) => `Scroll ${m[1]}`, args: (m) => ({ direction: m[1].toLowerCase() }) },
+  { test: /^copy$/i, action: "hotkey_copy", risk: "safe", label: () => "Copy", args: () => ({}) },
+  { test: /^paste$/i, action: "hotkey_paste", risk: "safe", label: () => "Paste", args: () => ({}) },
+  { test: /^cut$/i, action: "hotkey_cut", risk: "safe", label: () => "Cut", args: () => ({}) },
+  { test: /^undo$/i, action: "hotkey_undo", risk: "safe", label: () => "Undo", args: () => ({}) },
+  { test: /^redo$/i, action: "hotkey_redo", risk: "safe", label: () => "Redo", args: () => ({}) },
+  { test: /^select all$/i, action: "hotkey_selectall", risk: "safe", label: () => "Select all", args: () => ({}) },
 ];
 
 export function parseCommand(raw: string): ParsedCommand | null {

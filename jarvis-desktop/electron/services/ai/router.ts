@@ -39,6 +39,29 @@ export async function streamWithFallback(
   const order = getSettings().providerOrder;
   const systemPrompt = memoryContext ? `${JARVIS_SYSTEM_PROMPT}\n\nKnown facts about the user:\n${memoryContext}` : JARVIS_SYSTEM_PROMPT;
 
+  return runFallback(turns, systemPrompt, signal, onDelta);
+}
+
+/** Non-streaming convenience wrapper — collects the full response text from whichever provider answers. */
+export async function completeOnce(
+  turns: ChatTurn[],
+  systemPrompt: string,
+): Promise<{ text: string; provider: AiProviderId }> {
+  let full = "";
+  const controller = new AbortController();
+  const provider = await runFallback(turns, systemPrompt, controller.signal, (delta) => {
+    full += delta;
+  });
+  return { text: full, provider };
+}
+
+async function runFallback(
+  turns: ChatTurn[],
+  systemPrompt: string,
+  signal: AbortSignal,
+  onDelta: (text: string, provider: AiProviderId) => void,
+): Promise<AiProviderId> {
+  const order = getSettings().providerOrder;
   let lastError = "No AI providers are configured. Add an API key in Settings, or run a local Ollama model.";
   for (const id of order) {
     const adapter = adapters[id];

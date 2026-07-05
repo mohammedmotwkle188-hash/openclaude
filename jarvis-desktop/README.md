@@ -102,6 +102,44 @@ Anything that doesn't match a known pattern is handed to the conversational AI i
 File operations are sandboxed to your home directory; destructive actions (shutdown,
 restart, delete) always show a confirmation dialog before running.
 
+## Computer control
+
+Jarvis has real mouse/keyboard hands via [`@nut-tree-fork/nut-js`](https://github.com/nut-tree/nut-js)
+(`electron/services/system/automation.ts`). Voice/text commands:
+
+```
+click · click on the submit button · double click · double click on the search box
+right click · right click on the download link
+type hello there · press enter · press ctrl+s · press cmd+shift+4
+scroll up · scroll down
+copy · paste · cut · undo · redo · select all
+```
+
+"Click on X" / "double click on X" / "right click on X" work by taking a screenshot,
+asking whichever vision-capable AI provider is configured to point at the described
+element (as a fraction of the screen, so it's resolution-independent), then moving the
+real cursor there and clicking (`electron/services/ai/vision.ts`). This is genuinely
+useful but **not infallible** — accuracy depends entirely on the vision model's ability
+to locate small or ambiguous UI elements in a screenshot; it will occasionally click the
+wrong thing. Treat it as "point roughly where I meant," not a guaranteed-correct
+element finder — there's no confirmation step before the click happens today, so keep
+an eye on the screen while testing this, especially for the first few uses.
+
+**Before this works, your OS needs to grant input-control permission to the app**:
+
+- **macOS**: System Settings → Privacy & Security → Accessibility (for control) and
+  Screen Recording (for screenshots/vision) — add the packaged app, or Electron/Terminal
+  in dev.
+- **Windows**: works out of the box for most apps; some elevated/admin windows will
+  refuse synthetic input from a non-elevated process (run Jarvis as admin if you need to
+  control those).
+- **Linux**: `nut.js`'s native binding targets X11. Under Wayland you'll likely need
+  `xwayland` or to run the session under Xorg for mouse/keyboard control to work.
+
+`@nut-tree-fork/nut-js` ships prebuilt native bindings per OS/arch; if you hit a Node
+ABI mismatch after packaging, the same `npx electron-rebuild` mentioned above for
+`better-sqlite3` covers this too.
+
 ## Screen understanding
 
 - **Take a screenshot** saves a PNG to `Pictures/Jarvis Screenshots`.
@@ -128,7 +166,8 @@ Built and working: HUD UI with radar/rings/sweep/glassmorphism, live system stat
 multi-provider streaming chat with fallback, encrypted local memory, wake-word +
 British TTS voice with interrupt, the command engine above, screenshot+OCR, live
 screen monitor, vision-based screen analysis, weather/news/stock/crypto, reminders,
-notifications, and a confirmation gate on destructive actions.
+notifications, real mouse/keyboard automation with vision-guided "click on X" targeting,
+and a confirmation gate on destructive actions.
 
 Deliberately **not** wired to real third-party infrastructure in this build — the
 architecture leaves a clear seam to add each of these, but none of them talk to a live
@@ -138,10 +177,12 @@ external account out of the box:
   at your own sync service (e.g. Supabase/Postgres) if you need multi-device memory.
 - **Password-vault integration** (1Password/Bitwarden) — would need their respective
   SDKs and your real vault credentials; not something to fake.
-- **Full keyboard/mouse automation** (clicking/typing into arbitrary apps) — clipboard,
-  window-focus, and media-key control are implemented; full cursor/keystroke automation
-  needs a native addon (`nut.js`/`robotjs`) rebuilt against Electron's Node ABI, which
-  wasn't buildable in this sandbox (no display, no network path to prebuilt binaries).
+- **Autonomous multi-step tasks** ("build me a website" as one command that scaffolds,
+  writes, and serves a whole project unattended) — Jarvis can write code and create
+  files/run automation steps individually, but there's no planner chaining many steps
+  toward an open-ended goal without you driving each step.
+- **Video generation** — not implemented; would need a specific paid provider (e.g.
+  Runway/Sora-style API) and a key for it.
 - **Calendar sync** — `calendar:list` returns an empty list; wire up CalDAV/Google
   Calendar OAuth to make it live.
 - **Volume/brightness on Windows** use a keystroke-simulation fallback (no native CLI
@@ -158,6 +199,6 @@ visually verified here. What *was* verified:
 - `npx tsc -p electron/tsconfig.json --noEmit` — main process typechecks clean
 - `npx vite build` — renderer bundles successfully
 - `npx tsc -p electron/tsconfig.json` — main process compiles to `dist-electron/`
-- `better-sqlite3`'s native binding built successfully during `npm install`
+- `better-sqlite3` and `@nut-tree-fork/nut-js`'s native bindings both built successfully during `npm install`
 
 Run `npm run dev` + `npm run dev:electron` on a real desktop to see it live.
