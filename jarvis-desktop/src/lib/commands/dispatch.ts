@@ -11,7 +11,12 @@ function say(text: string) {
   useJarvisStore.getState().pushThought(text);
   if (settings?.voiceEnabled) {
     useJarvisStore.getState().setSpeaking(true);
-    speak(text, { rate: settings.speechRate, voiceName: settings.voiceName }, {
+    speak(text, {
+      rate: settings.speechRate,
+      voiceName: settings.voiceName,
+      ttsProvider: settings.ttsProvider,
+      elevenLabsVoiceId: settings.elevenLabsVoiceId,
+    }, {
       onEnd: () => useJarvisStore.getState().setSpeaking(false),
     });
   }

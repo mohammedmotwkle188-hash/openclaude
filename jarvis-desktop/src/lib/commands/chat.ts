@@ -26,7 +26,12 @@ export function initChatStreamListener() {
         const { settings } = useJarvisStore.getState();
         if (settings?.voiceEnabled && last.text.trim()) {
           store.setSpeaking(true);
-          speak(last.text, { rate: settings.speechRate, voiceName: settings.voiceName }, {
+          speak(last.text, {
+            rate: settings.speechRate,
+            voiceName: settings.voiceName,
+            ttsProvider: settings.ttsProvider,
+            elevenLabsVoiceId: settings.elevenLabsVoiceId,
+          }, {
             onEnd: () => useJarvisStore.getState().setSpeaking(false),
           });
         }

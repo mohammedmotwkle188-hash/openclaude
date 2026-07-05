@@ -78,11 +78,23 @@ quality depends on Chromium's built-in engine and an internet connection (Chromi
 on-device recognizer is limited). Say **"Jarvis"** to wake it, or click the mic button
 to talk without the wake word.
 
-Text-to-speech picks the best installed `en-GB` voice it can find (preferring names
-like "Google UK English Male" or "Daniel") and lets you pick a specific installed voice
-in Settings → Voice. If your OS has no English (UK) voice pack installed, install one —
-Jarvis will fall back to the closest available voice rather than failing silently.
-Speaking is interrupted automatically the moment the mic picks up your voice again.
+Text-to-speech has two tiers, picked by Settings → Voice → "Voice engine":
+
+- **ElevenLabs** (best quality) — add an API key from [elevenlabs.io](https://elevenlabs.io)
+  in Settings → API Keys and it becomes available. Defaults to "George," a British male
+  voice from ElevenLabs' own quickstart docs; once a key is added, Settings fetches your
+  actual available voices so you can pick a different one. The key never leaves the main
+  process — the renderer only asks main to synthesize and gets back audio bytes to play,
+  the same boundary every other API key in this app respects.
+- **Browser voice** (free, no key) — picks the best installed `en-GB` voice it can find
+  (preferring names like "Google UK English Male" or "Daniel"), selectable in Settings.
+  If your OS has no English (UK) voice pack installed, install one.
+
+"Auto" (the default) tries ElevenLabs first if a key is configured and falls back to the
+browser voice on any failure (no key, network error, bad voice ID) — so voice keeps
+working even if ElevenLabs is temporarily unreachable. Speaking is interrupted
+automatically the moment the mic picks up your voice again, regardless of which engine
+is talking.
 
 ## Command engine
 

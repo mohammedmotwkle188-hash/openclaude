@@ -23,6 +23,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [maskedKeys, setMaskedKeys] = useState<Record<string, boolean>>({});
   const [passphrase, setPassphrase] = useState("");
   const [vaultMsg, setVaultMsg] = useState("");
+  const [elevenLabsVoices, setElevenLabsVoices] = useState<Array<{ id: string; name: string; accent: string }>>([]);
+  const [elevenLabsError, setElevenLabsError] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -31,6 +33,14 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     window.speechSynthesis.onvoiceschanged = load;
     window.jarvis.settings.getMaskedApiKeys().then(setMaskedKeys);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !maskedKeys.elevenlabs) return;
+    window.jarvis.voice
+      .elevenLabsListVoices()
+      .then(setElevenLabsVoices)
+      .catch((err) => setElevenLabsError(err?.message ?? "Couldn't load ElevenLabs voices."));
+  }, [open, maskedKeys.elevenlabs]);
 
   if (!settings) return null;
 
@@ -85,7 +95,39 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               <Row label="Wake word ('Jarvis')">
                 <Switch checked={settings.wakeWordEnabled} onChange={(v) => updateSettings({ wakeWordEnabled: v })} />
               </Row>
-              <Row label="British voice">
+              <Row label="Voice engine">
+                <select
+                  value={settings.ttsProvider}
+                  onChange={(e) => updateSettings({ ttsProvider: e.target.value as typeof settings.ttsProvider })}
+                  className="no-drag rounded border border-hud-cyan/30 bg-black/40 px-2 py-1 text-[12px] text-hud-white"
+                >
+                  <option value="auto">Auto (ElevenLabs if configured, else browser voice)</option>
+                  <option value="elevenlabs">ElevenLabs (best quality, needs a key below)</option>
+                  <option value="browser">Browser voice (free, no key)</option>
+                </select>
+              </Row>
+
+              {(settings.ttsProvider === "elevenlabs" || settings.ttsProvider === "auto") && (
+                <Row label="ElevenLabs voice">
+                  {maskedKeys.elevenlabs ? (
+                    <select
+                      value={settings.elevenLabsVoiceId ?? ""}
+                      onChange={(e) => updateSettings({ elevenLabsVoiceId: e.target.value || null })}
+                      className="no-drag rounded border border-hud-cyan/30 bg-black/40 px-2 py-1 text-[12px] text-hud-white"
+                    >
+                      <option value="">Auto (George, British male)</option>
+                      {elevenLabsVoices.map((v) => (
+                        <option key={v.id} value={v.id}>{v.name}{v.accent ? ` (${v.accent})` : ""}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="font-mono text-[10px] text-hud-white/40">Add an ElevenLabs key below to pick a voice</span>
+                  )}
+                </Row>
+              )}
+              {elevenLabsError && <p className="font-mono text-[10px] text-hud-orange/70">{elevenLabsError}</p>}
+
+              <Row label="Browser voice">
                 <select
                   value={settings.voiceName ?? ""}
                   onChange={(e) => updateSettings({ voiceName: e.target.value || null })}
@@ -99,8 +141,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               </Row>
               {voices.length === 0 && (
                 <p className="font-mono text-[10px] text-hud-white/40">
-                  No en-GB voices found on this system. Speech will fall back to the closest available voice — install
-                  an English (UK) voice pack in your OS for authentic British pronunciation.
+                  No en-GB voices found on this system. The browser-voice fallback will use the closest available
+                  voice — install an English (UK) voice pack in your OS for authentic British pronunciation.
                 </p>
               )}
               <Row label={`Speech rate (${settings.speechRate.toFixed(2)}x)`}>
@@ -147,7 +189,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             </Section>
 
             <Section title="API Keys">
-              {(["anthropic", "openai", "gemini", "openweather", "newsapi"] as const).map((k) => (
+              {(["anthropic", "openai", "gemini", "elevenlabs", "openweather", "newsapi"] as const).map((k) => (
                 <Row key={k} label={`${k}${maskedKeys[k] ? " ✓ configured" : ""}`}>
                   <input
                     type="password"

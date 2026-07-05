@@ -112,6 +112,8 @@ export interface AppSettings {
   wakeWordEnabled: boolean;
   voiceEnabled: boolean;
   voiceName: string | null;
+  elevenLabsVoiceId: string | null;
+  ttsProvider: "auto" | "elevenlabs" | "edge" | "offline";
   speechRate: number;
   providerOrder: AiProviderId[];
   ollamaBaseUrl: string;
@@ -123,6 +125,7 @@ export interface ApiKeySet {
   anthropic?: string;
   openai?: string;
   gemini?: string;
+  elevenlabs?: string;
   openweather?: string;
   newsapi?: string;
 }

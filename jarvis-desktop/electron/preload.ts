@@ -6,6 +6,7 @@ import type {
   CalendarEventItem,
   ChatMessage,
   ChatStreamChunk,
+  ElevenLabsVoice,
   NewsHeadline,
   NotificationItem,
   ParsedCommand,
@@ -45,6 +46,11 @@ const api = {
         ipcRenderer.removeListener(IPC.chatStream, listener);
       };
     },
+  },
+  voice: {
+    elevenLabsSpeak: (text: string, voiceId?: string | null) =>
+      ipcRenderer.invoke(IPC.voiceElevenLabsSpeak, text, voiceId) as Promise<{ base64: string }>,
+    elevenLabsListVoices: () => ipcRenderer.invoke(IPC.voiceElevenLabsListVoices) as Promise<ElevenLabsVoice[]>,
   },
   memory: {
     setPassphrase: (pass: string) => ipcRenderer.invoke(IPC.memorySetPassphrase, pass) as Promise<boolean>,

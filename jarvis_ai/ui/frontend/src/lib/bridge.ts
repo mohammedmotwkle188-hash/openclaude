@@ -61,6 +61,7 @@ const jarvis = {
   },
   voice: {
     listenOnce: () => callApi("voice_listen_once"),
+    listElevenLabsVoices: () => callApi<Array<{ id: string; name: string; accent: string }>>("voice_list_elevenlabs_voices"),
     onListeningChange: (cb: Listener) => on("voice_listening_change", cb),
     onWakeTriggered: (cb: Listener) => on("voice_wake_triggered", cb),
     onSpeakingChange: (cb: Listener) => on("voice_speaking_change", cb),

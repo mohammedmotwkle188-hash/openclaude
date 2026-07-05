@@ -20,6 +20,8 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "wakeWordEnabled": True,
     "voiceEnabled": True,
     "voiceName": None,
+    "elevenLabsVoiceId": None,
+    "ttsProvider": "auto",  # "auto" | "elevenlabs" | "edge" | "offline" — see voice/tts.py
     "speechRate": 1.05,
     "providerOrder": ["anthropic", "openai", "gemini", "ollama"],
     "ollamaBaseUrl": "http://127.0.0.1:11434",
@@ -27,7 +29,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "hasPassphrase": False,
 }
 
-API_KEY_FIELDS = ["anthropic", "openai", "gemini", "openweather", "newsapi"]
+API_KEY_FIELDS = ["anthropic", "openai", "gemini", "elevenlabs", "openweather", "newsapi"]
 
 _cache: Optional[Dict[str, Any]] = None
 

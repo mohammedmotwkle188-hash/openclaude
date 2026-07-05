@@ -29,11 +29,21 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [maskedKeys, setMaskedKeys] = useState<Record<string, boolean>>({});
   const [passphrase, setPassphrase] = useState("");
   const [vaultMsg, setVaultMsg] = useState("");
+  const [elevenLabsVoices, setElevenLabsVoices] = useState<Array<{ id: string; name: string; accent: string }>>([]);
+  const [elevenLabsError, setElevenLabsError] = useState("");
 
   useEffect(() => {
     if (!open) return;
     window.jarvis.settings.getMaskedApiKeys().then(setMaskedKeys);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !maskedKeys.elevenlabs) return;
+    window.jarvis.voice
+      .listElevenLabsVoices()
+      .then(setElevenLabsVoices)
+      .catch((err) => setElevenLabsError(err?.message ?? "Couldn't load ElevenLabs voices."));
+  }, [open, maskedKeys.elevenlabs]);
 
   if (!settings) return null;
 
@@ -88,7 +98,40 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               <Row label="Wake word ('Jarvis')">
                 <Switch checked={settings.wakeWordEnabled} onChange={(v) => updateSettings({ wakeWordEnabled: v })} />
               </Row>
-              <Row label="British voice">
+              <Row label="Voice engine">
+                <select
+                  value={settings.ttsProvider}
+                  onChange={(e) => updateSettings({ ttsProvider: e.target.value as typeof settings.ttsProvider })}
+                  className="no-drag rounded border border-hud-cyan/30 bg-black/40 px-2 py-1 text-[12px] text-hud-white"
+                >
+                  <option value="auto">Auto (ElevenLabs if configured, else Edge)</option>
+                  <option value="elevenlabs">ElevenLabs (best quality, needs a key below)</option>
+                  <option value="edge">Microsoft Edge (free, no key)</option>
+                  <option value="offline">Offline (your OS's built-in voice)</option>
+                </select>
+              </Row>
+
+              {(settings.ttsProvider === "elevenlabs" || settings.ttsProvider === "auto") && (
+                <Row label="ElevenLabs voice">
+                  {maskedKeys.elevenlabs ? (
+                    <select
+                      value={settings.elevenLabsVoiceId ?? ""}
+                      onChange={(e) => updateSettings({ elevenLabsVoiceId: e.target.value || null })}
+                      className="no-drag rounded border border-hud-cyan/30 bg-black/40 px-2 py-1 text-[12px] text-hud-white"
+                    >
+                      <option value="">Auto (George, British male)</option>
+                      {elevenLabsVoices.map((v) => (
+                        <option key={v.id} value={v.id}>{v.name}{v.accent ? ` (${v.accent})` : ""}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="font-mono text-[10px] text-hud-white/40">Add an ElevenLabs key below to pick a voice</span>
+                  )}
+                </Row>
+              )}
+              {elevenLabsError && <p className="font-mono text-[10px] text-hud-orange/70">{elevenLabsError}</p>}
+
+              <Row label="Edge / offline voice">
                 <select
                   value={settings.voiceName ?? ""}
                   onChange={(e) => updateSettings({ voiceName: e.target.value || null })}
@@ -101,8 +144,9 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 </select>
               </Row>
               <p className="font-mono text-[10px] text-hud-white/40">
-                Voices come from Microsoft Edge's free neural TTS and need an internet connection. Offline, speech
-                falls back to your OS's built-in voice instead.
+                ElevenLabs gives the most natural British voice but needs a paid API key from elevenlabs.io. Edge's
+                free neural voices need only an internet connection. Both fall back to your OS's offline voice if
+                unreachable.
               </p>
               <Row label={`Speech rate (${settings.speechRate.toFixed(2)}x)`}>
                 <input
@@ -148,7 +192,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             </Section>
 
             <Section title="API Keys">
-              {(["anthropic", "openai", "gemini", "openweather", "newsapi"] as const).map((k) => (
+              {(["anthropic", "openai", "gemini", "elevenlabs", "openweather", "newsapi"] as const).map((k) => (
                 <Row key={k} label={`${k}${maskedKeys[k] ? " ✓ configured" : ""}`}>
                   <input
                     type="password"

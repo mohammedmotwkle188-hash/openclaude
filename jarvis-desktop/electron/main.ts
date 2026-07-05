@@ -9,6 +9,7 @@ import { registerSettingsIpc } from "./ipc/settings";
 import { registerScreenIpc } from "./ipc/screen";
 import { registerDataIpc } from "./ipc/data";
 import { registerWindowIpc } from "./ipc/window";
+import { registerVoiceIpc } from "./ipc/voice";
 
 const isDev = !app.isPackaged;
 
@@ -57,6 +58,7 @@ function createWindow() {
   registerScreenIpc(win);
   registerDataIpc();
   registerWindowIpc(win);
+  registerVoiceIpc();
 
   return win;
 }

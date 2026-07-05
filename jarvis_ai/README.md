@@ -83,10 +83,18 @@ crypto (CoinGecko) need no key.
   short phrases for the literal word "jarvis", which is simpler to run with zero extra
   model downloads but less efficient than a purpose-built wake-word engine. Swap
   `voice/wakeword.py` for one of those if you want lower always-on CPU use.
-- **TTS**: `voice/tts.py` uses Microsoft Edge's free neural voices (`edge-tts`, no key,
-  needs internet) — `en-GB-RyanNeural` by default, a calm British male voice, with two
-  more picked in Settings. No internet, or the request fails? It falls back to your OS's
-  built-in offline voice via `pyttsx3` automatically.
+- **TTS**: `voice/tts.py` has three tiers, picked by `settings["ttsProvider"]`:
+  - **ElevenLabs** (best quality) — add a key from [elevenlabs.io](https://elevenlabs.io)
+    in Settings and it's used automatically under "auto." Defaults to "George," a British
+    male voice from ElevenLabs' own quickstart docs; Settings fetches your real available
+    voices once a key is added, via `list_elevenlabs_voices()`.
+  - **Microsoft Edge** neural voices (`edge-tts`, no key, needs internet) —
+    `en-GB-RyanNeural` by default, a calm British male voice.
+  - **Offline** — falls back to your OS's built-in voice via `pyttsx3` if the above two
+    aren't reachable (no internet, no key, request failure).
+
+  "Auto" (the default) tries them in that order and falls through on any failure, so
+  voice keeps working even without an ElevenLabs key or without internet at all.
 - **Interrupt**: starting to talk again (mic picks it up) stops playback immediately —
   handled by `tts.stop_speaking()`, called from the wake-word/listen-once paths.
 

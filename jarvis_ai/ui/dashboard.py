@@ -123,6 +123,11 @@ class JarvisApi:
             })
         return bool(text)
 
+    def voice_list_elevenlabs_voices(self):
+        from voice import tts
+
+        return tts.list_elevenlabs_voices()
+
     # --- memory ---
     def memory_set_passphrase(self, passphrase: str):
         long_term.set_passphrase(passphrase)

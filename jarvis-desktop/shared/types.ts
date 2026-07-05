@@ -112,6 +112,8 @@ export interface AppSettings {
   wakeWordEnabled: boolean;
   voiceEnabled: boolean;
   voiceName: string | null;
+  elevenLabsVoiceId: string | null;
+  ttsProvider: "auto" | "elevenlabs" | "browser";
   speechRate: number;
   providerOrder: AiProviderId[];
   ollamaBaseUrl: string;
@@ -123,8 +125,15 @@ export interface ApiKeySet {
   anthropic?: string;
   openai?: string;
   gemini?: string;
+  elevenlabs?: string;
   openweather?: string;
   newsapi?: string;
+}
+
+export interface ElevenLabsVoice {
+  id: string;
+  name: string;
+  accent: string;
 }
 
 export const DANGEROUS_ACTIONS = [
@@ -153,6 +162,9 @@ export const IPC = {
   memorySetPassphrase: "memory:setPassphrase",
   memoryUnlock: "memory:unlock",
   memoryLock: "memory:lock",
+
+  voiceElevenLabsSpeak: "voice:elevenlabsSpeak",
+  voiceElevenLabsListVoices: "voice:elevenlabsListVoices",
 
   commandParse: "command:parse",
   commandExecute: "command:execute",

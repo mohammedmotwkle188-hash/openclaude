@@ -15,6 +15,8 @@ const defaults: StoreShape = {
     wakeWordEnabled: true,
     voiceEnabled: true,
     voiceName: null,
+    elevenLabsVoiceId: null,
+    ttsProvider: "auto",
     speechRate: 1.05,
     providerOrder: ["anthropic", "openai", "gemini", "ollama"],
     ollamaBaseUrl: "http://127.0.0.1:11434",
@@ -82,6 +84,7 @@ export function getMaskedApiKeys(): Record<keyof ApiKeySet, boolean> {
     anthropic: !!keys.anthropic,
     openai: !!keys.openai,
     gemini: !!keys.gemini,
+    elevenlabs: !!keys.elevenlabs,
     openweather: !!keys.openweather,
     newsapi: !!keys.newsapi,
   };
