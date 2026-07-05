@@ -26,10 +26,11 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "providerOrder": ["anthropic", "openai", "gemini", "ollama"],
     "ollamaBaseUrl": "http://127.0.0.1:11434",
     "weatherLocation": "London,UK",
+    "hueBridgeIp": None,
     "hasPassphrase": False,
 }
 
-API_KEY_FIELDS = ["anthropic", "openai", "gemini", "elevenlabs", "openweather", "newsapi"]
+API_KEY_FIELDS = ["anthropic", "openai", "gemini", "elevenlabs", "openweather", "newsapi", "wolfram", "hue"]
 
 _cache: Optional[Dict[str, Any]] = None
 

@@ -192,7 +192,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             </Section>
 
             <Section title="API Keys">
-              {(["anthropic", "openai", "gemini", "elevenlabs", "openweather", "newsapi"] as const).map((k) => (
+              {(["anthropic", "openai", "gemini", "elevenlabs", "openweather", "newsapi", "wolfram"] as const).map((k) => (
                 <Row key={k} label={`${k}${maskedKeys[k] ? " ✓ configured" : ""}`}>
                   <input
                     type="password"

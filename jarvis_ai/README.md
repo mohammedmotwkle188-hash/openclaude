@@ -113,6 +113,19 @@ weather · weather in tokyo · news · stock aapl · crypto bitcoin
 click · click on the submit button · double click · right click on the download link
 type hello there · press enter · press ctrl+s
 scroll up · scroll down · copy · paste · cut · undo · redo · select all
+
+# Webcam computer vision (needs a webcam)
+learn my face as Alex · who am i · what gesture · check my eyes
+
+# Knowledge & calendar (need their own keys/credentials — see below)
+calculate 15% of 240 · solve x^2 = 49 · my calendar
+
+# Offline utilities
+take a note buy milk · read my latest note · tell me a joke
+what is the time · what is the date · set a timer for 5 minutes
+
+# Smart-home (Philips Hue)
+pair the lights · turn on the kitchen light · turn off all lights
 ```
 
 Everything not matching a known pattern goes to the conversational AI instead. File
@@ -127,6 +140,44 @@ the screen), then move the real cursor there via `pyautogui` and click
 (`tools/automation.py`). Same caveat as the Electron build: accuracy depends entirely on
 the vision model — it's "point roughly where I meant," not a guaranteed-correct element
 finder, and there's no confirmation step before the click fires.
+
+### Webcam computer vision (`vision/face.py`, `gestures.py`, `eyetracking.py`)
+
+- **Face recognition** — "learn my face as `<name>`" captures ~20 webcam samples and
+  trains an OpenCV LBPH recognizer (`~/.jarvis_ai/faces/`); "who am I" then names whoever
+  is in frame. Uses `opencv-contrib-python`'s built-in recognizer rather than
+  dlib/`face_recognition`, so it installs with no C++ toolchain — the trade-off is lower
+  accuracy than a deep-learning model.
+- **Hand gestures** — "what gesture" classifies fist / open palm / thumbs up / peace /
+  pointing from MediaPipe hand landmarks using explainable finger-geometry rules.
+- **Eyes** — "check my eyes" reports open/closed (eye-aspect-ratio) and rough gaze
+  left/center/right from MediaPipe iris landmarks. This is a single-frame heuristic, **not**
+  calibrated screen-coordinate gaze tracking — it can't tell where on your monitor you're
+  looking without a per-user calibration step this interface doesn't run.
+
+All three need a real webcam and can't be exercised headlessly, so they were verified by
+import + logic tests here, not against a live camera.
+
+### Knowledge & calendar (bring your own credentials)
+
+- **Wolfram Alpha** (`tools/wolfram.py`) — "calculate…" / "solve…" / "how much is…" hit
+  the free [Short Answers API](https://developer.wolframalpha.com/). Add your App ID as
+  the `wolfram` key in Settings. General "what is X" questions deliberately go to the
+  conversational AI instead, which handles them better.
+- **Google Calendar** (`tools/calendar_google.py`) — "my calendar" reads upcoming events.
+  Needs your own OAuth client (Google won't allow shipping a shared desktop secret): make
+  a Desktop-app OAuth client in Google Cloud Console, enable the Calendar API, and save the
+  JSON to `~/.jarvis_ai/google_credentials.json`. First use opens a browser to authorize;
+  the token is cached after that.
+
+### Smart-home (`tools/iot.py`)
+
+**Philips Hue** lights are fully implemented against the local Hue Bridge (no cloud
+account, LAN only): press the bridge's link button, say "pair the lights," then "turn on
+the kitchen light" / "turn off all lights." Other device classes (TVs, thermostats, Nest,
+CCTVs) are explicit extension points that raise a clear "not wired up" error — each needs
+its own vendor account/API and, usually, physical hardware to test against, so they're
+left as documented stubs rather than faked.
 
 ## Screen understanding
 
@@ -156,9 +207,14 @@ verified in this repo's sandbox under Xvfb + a Qt backend — see "Verification"
 live system stats (`psutil`), the full command engine and confirmation gate, encrypted
 local memory with a real lock/unlock roundtrip, multi-provider AI chat with fallback,
 mouse/keyboard automation with vision-guided targeting, screenshot+OCR, live screen
-monitor, weather/news/stock/crypto, reminders, and the pywebview HUD itself (a real
-window with the real frontend and the real Python bridge was created, ran, and torn down
-cleanly during verification).
+monitor, weather/news/stock/crypto, reminders, notes/jokes/timers, ElevenLabs voice, and
+the pywebview HUD itself (a real window with the real frontend and the real Python bridge
+was created, ran, and torn down cleanly during verification).
+
+Built but needing hardware or your own credentials to actually use (verified by import +
+logic tests here, since this sandbox has no webcam and no third-party accounts): webcam
+face recognition / hand gestures / eye state, Wolfram Alpha STEM answers, Google Calendar,
+and Philips Hue light control.
 
 Not wired to real third-party infrastructure, same as the Electron build:
 
@@ -170,8 +226,8 @@ Not wired to real third-party infrastructure, same as the Electron build:
   individually; there's no planner chaining many steps toward an open-ended goal
   ("build me a whole website" as one unattended command) without you driving each step.
 - **Video generation** — not implemented; needs a specific paid provider and a key.
-- **Calendar sync** — `calendar_list` returns an empty list; wire up CalDAV/Google
-  Calendar OAuth to make it live.
+- **Non-Hue smart-home devices** (TVs, thermostats, Nest, CCTVs) — documented extension
+  points in `tools/iot.py` that raise a clear error; each needs its own vendor API.
 - **Dedicated wake-word model** — see the Voice section above.
 
 ## Verification performed in this environment

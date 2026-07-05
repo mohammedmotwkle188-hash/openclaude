@@ -128,6 +128,7 @@ export interface ApiKeySet {
   elevenlabs?: string;
   openweather?: string;
   newsapi?: string;
+  wolfram?: string;
 }
 
 export const DANGEROUS_ACTIONS = [

@@ -234,9 +234,24 @@ class JarvisApi:
         return True
 
 
+def _on_timer_fired(_timer_id: str, label: str) -> None:
+    _push("notification", {
+        "id": new_id(), "title": label, "body": f"{label} finished.", "level": "warning", "timestamp": now_ms(),
+    })
+    if config.get_settings().get("voiceEnabled"):
+        from voice import tts
+
+        tts.speak(f"{label} finished.", config.get_settings())
+
+
 def run() -> None:
     global _window
     orchestrator.push_event = _push
+
+    from tools import timers
+
+    timers.set_fire_callback(_on_timer_fired)
+
     api = JarvisApi()
     _window = webview.create_window(
         "J.A.R.V.I.S.",

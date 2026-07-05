@@ -22,6 +22,19 @@ pygame>=2.6            # audio playback for both ElevenLabs and edge-tts output,
 pyautogui>=0.9.54
 pytesseract>=0.3.13    # requires the system `tesseract` binary — see README
 Pillow>=10.4
+opencv-contrib-python>=4.9   # face detection/recognition (LBPH) — the "contrib" build includes cv2.face
+mediapipe==0.10.14           # hand-gesture + eye/iris landmarks; pinned — 0.10.15+ dropped the mp.solutions API
+
+# Google Calendar (optional; only imported when calendar features are used)
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.2
+
+# --- Shared constraint: mediapipe (above) requires protobuf <5, but the newest
+# google-api-core wants protobuf >=5.29, which can't both be satisfied. Pinning protobuf
+# and google-api-core to a mutually compatible pair keeps the vision AND Google-Calendar/
+# Gemini features installable together. Verified to import and run fine at these versions.
+protobuf>=4.25.3,<5
+google-api-core<2.25
 
 # Browser automation (optional, only used by tools.browser.automate_fetch_text)
 playwright>=1.47

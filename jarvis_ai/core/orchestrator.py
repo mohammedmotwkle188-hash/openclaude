@@ -79,6 +79,32 @@ def _rules() -> List[Rule]:
         {"pattern": r"^undo$", "action": "hotkey_undo", "risk": "safe", "label": lambda m: "Undo", "args": lambda m: {}},
         {"pattern": r"^redo$", "action": "hotkey_redo", "risk": "safe", "label": lambda m: "Redo", "args": lambda m: {}},
         {"pattern": r"^select all$", "action": "hotkey_selectall", "risk": "safe", "label": lambda m: "Select all", "args": lambda m: {}},
+
+        # Computer vision (webcam)
+        {"pattern": r"^(?:who (?:is|am i)|who do you see|recogni[sz]e (?:my |the )?face)\??$", "action": "recognize_face", "risk": "safe", "label": lambda m: "Recognize face", "args": lambda m: {}},
+        {"pattern": r"^learn my face as (.+)$", "action": "enroll_face", "risk": "safe", "label": lambda m: f"Learn face as {m.group(1)}", "args": lambda m: {"name": m.group(1)}},
+        {"pattern": r"^(?:what gesture|read my hand|detect (?:my )?gesture)\??$", "action": "detect_gesture", "risk": "safe", "label": lambda m: "Detect hand gesture", "args": lambda m: {}},
+        {"pattern": r"^(?:check my eyes|am i looking|track my eyes)\??$", "action": "check_eyes", "risk": "safe", "label": lambda m: "Check eyes", "args": lambda m: {}},
+
+        # Knowledge / STEM / calendar. Deliberately only explicit compute verbs, not a broad
+        # "what is ..." — general questions should reach the conversational AI, which handles
+        # them better, rather than being force-routed to Wolfram.
+        {"pattern": r"^(?:calculate|compute|solve|how much is) (.+)$", "action": "wolfram", "risk": "safe", "label": lambda m: f"Compute: {m.group(1)}", "args": lambda m: {"query": m.group(1)}},
+        {"pattern": r"^(?:my calendar|upcoming events|what'?s on my calendar|read (?:my )?calendar)\??$", "action": "calendar_read", "risk": "safe", "label": lambda m: "Read calendar", "args": lambda m: {}},
+
+        # Offline utilities
+        {"pattern": r"^(?:take a note|note|remember)(?:[:\-]| that| to)? (.+)$", "action": "save_note", "risk": "safe", "label": lambda m: f"Save note: {m.group(1)[:30]}", "args": lambda m: {"text": m.group(1)}},
+        {"pattern": r"^read (?:my )?(?:latest |last )?note$", "action": "read_note", "risk": "safe", "label": lambda m: "Read latest note", "args": lambda m: {}},
+        {"pattern": r"^(?:tell me a joke|say something funny|joke)$", "action": "joke", "risk": "safe", "label": lambda m: "Tell a joke", "args": lambda m: {}},
+        {"pattern": r"^(?:what(?:'?s| is) the )?time\??$", "action": "time", "risk": "safe", "label": lambda m: "Tell the time", "args": lambda m: {}},
+        {"pattern": r"^(?:what(?:'?s| is) (?:the |today'?s )?date|what day is it)\??$", "action": "date", "risk": "safe", "label": lambda m: "Tell the date", "args": lambda m: {}},
+        {"pattern": r"^set (?:a )?timer for (\d+) (second|minute|hour)s?$", "action": "timer", "risk": "safe", "label": lambda m: f"Timer for {m.group(1)} {m.group(2)}(s)", "args": lambda m: {"amount": m.group(1), "unit": m.group(2)}},
+
+        # Smart-home (Philips Hue). "all lights" must be tested before the named-light rule,
+        # otherwise the greedy name capture swallows "all" as if it were a light's name.
+        {"pattern": r"^pair (?:the )?(?:lights|hue)$", "action": "hue_pair", "risk": "safe", "label": lambda m: "Pair Hue bridge", "args": lambda m: {}},
+        {"pattern": r"^turn (on|off) (?:the |all )?lights$", "action": "hue_set_all", "risk": "safe", "label": lambda m: f"Turn {m.group(1)} all lights", "args": lambda m: {"on": m.group(1)}},
+        {"pattern": r"^turn (on|off) (?:the )?(.+?) light?s?$", "action": "hue_set", "risk": "safe", "label": lambda m: f"Turn {m.group(1)} {m.group(2)} light", "args": lambda m: {"on": m.group(1), "name": m.group(2)}},
     ]
 
 
@@ -290,6 +316,76 @@ class Orchestrator:
             return automation.hotkey("redo")
         if a == "hotkey_selectall":
             return automation.hotkey("selectAll")
+
+        # --- Computer vision (webcam) ---
+        if a == "recognize_face":
+            from vision import face
+
+            return face.recognize_face()
+        if a == "enroll_face":
+            from vision import face
+
+            return face.enroll_face(args["name"])
+        if a == "detect_gesture":
+            from vision import gestures
+
+            return gestures.detect_gesture()
+        if a == "check_eyes":
+            from vision import eyetracking
+
+            return eyetracking.check_eyes()
+
+        # --- Knowledge / calendar ---
+        if a == "wolfram":
+            from tools import wolfram
+
+            return wolfram.ask_wolfram(args["query"])
+        if a == "calendar_read":
+            from tools import calendar_google
+
+            return calendar_google.summarize_upcoming()
+
+        # --- Offline utilities ---
+        if a == "save_note":
+            from tools import notes
+
+            return notes.save_note(args["text"])
+        if a == "read_note":
+            from tools import notes
+
+            return notes.read_latest_note()
+        if a == "joke":
+            from tools import jokes
+
+            return jokes.tell_joke()
+        if a == "time":
+            import datetime as _dt
+
+            return f"It's {_dt.datetime.now().strftime('%H:%M')}."
+        if a == "date":
+            import datetime as _dt
+
+            return f"Today is {_dt.datetime.now().strftime('%A, %d %B %Y')}."
+        if a == "timer":
+            from tools import timers
+
+            unit_seconds = {"second": 1, "minute": 60, "hour": 3600}[args["unit"]]
+            return timers.start_timer(int(args["amount"]) * unit_seconds, "Timer")
+
+        # --- Smart-home (Philips Hue) ---
+        if a == "hue_pair":
+            from tools import iot
+
+            return iot.pair_hue_bridge()
+        if a == "hue_set":
+            from tools import iot
+
+            return iot.set_light(args["name"], args["on"] == "on")
+        if a == "hue_set_all":
+            from tools import iot
+
+            return iot.set_light(None, args["on"] == "on")
+
         raise ValueError(f'Unknown action "{a}".')
 
 
