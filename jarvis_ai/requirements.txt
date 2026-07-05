@@ -1,0 +1,32 @@
+# Core
+pywebview>=5.3
+psutil>=6.1
+requests>=2.32
+cryptography>=43.0
+beautifulsoup4>=4.12
+
+# AI providers (only the ones you actually use need a valid API key at runtime)
+anthropic>=0.39
+openai>=1.57
+google-generativeai>=0.8
+
+# Voice
+SpeechRecognition>=3.10
+PyAudio>=0.2.14        # microphone backend for SpeechRecognition — see README for install notes
+edge-tts>=6.1
+pyttsx3>=2.90          # offline TTS fallback when edge-tts has no internet
+pygame>=2.6            # audio playback for edge-tts output, with clean interrupt support
+
+# Vision / screen / automation
+pyautogui>=0.9.54
+pytesseract>=0.3.13    # requires the system `tesseract` binary — see README
+Pillow>=10.4
+
+# Browser automation (optional, only used by tools.browser.automate_fetch_text)
+playwright>=1.47
+
+# Windows-only extras (safe to leave installed cross-platform; imported lazily)
+pycaw>=20240210; sys_platform == "win32"
+comtypes>=1.4; sys_platform == "win32"
+screen-brightness-control>=0.24; sys_platform != "linux"
+keyboard>=0.13.5; sys_platform == "win32"
