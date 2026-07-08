@@ -24,6 +24,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "ttsProvider": "auto",  # "auto" | "elevenlabs" | "edge" | "offline" — see voice/tts.py
     "speechRate": 1.05,
     "providerOrder": ["anthropic", "openai", "gemini", "openrouter", "ollama"],
+    "geminiModel": "gemini-2.0-flash",
     "openRouterModel": "openai/gpt-4o-mini",
     "ollamaBaseUrl": "http://127.0.0.1:11434",
     "weatherLocation": "London,UK",

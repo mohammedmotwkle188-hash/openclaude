@@ -127,7 +127,8 @@ class GeminiAdapter(BaseAdapter):
         import google.generativeai as genai
 
         genai.configure(api_key=config.get_api_key("gemini"))
-        model = genai.GenerativeModel("gemini-1.5-pro", system_instruction=system_prompt)
+        model_name = config.get_settings().get("geminiModel") or "gemini-2.0-flash"
+        model = genai.GenerativeModel(model_name, system_instruction=system_prompt)
 
         history = []
         for t in turns[:-1]:
@@ -262,11 +263,13 @@ def complete_once(turns: List[ChatTurn], system_prompt: str) -> Tuple[str, str]:
 
 
 def _run_fallback(turns: List[ChatTurn], system_prompt: str, on_delta: Callable[[str, str], None]) -> str:
-    last_error = "No AI providers are configured. Add an API key in Settings, or run a local Ollama model."
+    errors: List[str] = []
+    any_configured = False
     for provider_id in config.provider_order():
         adapter = ADAPTERS[provider_id]
         if not adapter.is_configured():
             continue
+        any_configured = True
         produced_any = False
         try:
             def _forward(text: str, _id: str = provider_id):
@@ -276,8 +279,15 @@ def _run_fallback(turns: List[ChatTurn], system_prompt: str, on_delta: Callable[
 
             adapter.stream_chat(turns, system_prompt, _forward)
         except Exception as err:  # noqa: BLE001 - genuinely need to catch anything an adapter throws
-            last_error = str(err) or repr(err)
-            logger.warning("Provider %s failed: %s", provider_id, last_error)
+            msg = str(err) or repr(err)
+            errors.append(f"{provider_id} → {msg[:160]}")
+            logger.warning("Provider %s failed: %s", provider_id, msg)
         if produced_any:
             return provider_id
-    raise RuntimeError(last_error)
+
+    # Report EVERY provider's failure, not just the last one — the last provider is usually
+    # Ollama (a generic 404 when it isn't running), which hid the real reason (e.g. an
+    # invalid key or wrong model on the provider the user actually configured).
+    if not any_configured:
+        raise RuntimeError("No AI provider is configured. Add a valid API key in Settings.")
+    raise RuntimeError("Every AI provider failed:\n- " + "\n- ".join(errors))
