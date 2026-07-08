@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import config
 from BRAIN import brain
-from CORE import commands, memory
+from CORE import commands, memory, plugins
 from ENGINE import tts
 
 
@@ -59,6 +59,18 @@ def _rules():
         (r"^read (?:my )?(?:latest |last )?note$", "read_note", "safe", lambda m: "Read note", lambda m: {}),
         (r"^set (?:a )?timer for (\d+) (second|minute|hour)s?$", "timer", "safe",
          lambda m: f"Timer {m.group(1)} {m.group(2)}", lambda m: {"amount": m.group(1), "unit": m.group(2)}),
+        # --- Chromebook-safe feature pack ---
+        (r"^(?:list|show)(?: me)?(?: my)? (?:files (?:in )?)?(downloads?|documents|docs|desktop|pictures|photos|music|videos|home)$",
+         "list_files", "safe", lambda m: f"List {m.group(1)}", lambda m: {"folder": m.group(1)}),
+        (r"^open (?:the )?file (.+)$", "open_file", "safe",
+         lambda m: f"Open file {m.group(1)[:24]}", lambda m: {"name": m.group(1)}),
+        (r"^(?:read|summari[sz]e)(?: the)? pdf (.+)$", "read_pdf", "safe",
+         lambda m: f"Read PDF {m.group(1)[:24]}", lambda m: {"name": m.group(1)}),
+        (r"^play (.+?)(?: on (youtube|spotify))?$", "play", "safe",
+         lambda m: f"Play {m.group(1)[:24]}", lambda m: {"query": m.group(1), "service": m.group(2) or "youtube"}),
+        (r"^back ?up(?: my data| my stuff| everything)?$", "backup", "safe", lambda m: "Backup", lambda m: {}),
+        (r"^(?:update yourself|update jarvis|check for updates)$", "self_update", "safe",
+         lambda m: "Update", lambda m: {}),
     ]
 
 
@@ -91,12 +103,20 @@ class Orchestrator:
         if cmd and cmd.action in DATA_ACTIONS:
             self._run_data(cmd)
             return
+        if cmd and cmd.action == "read_pdf":
+            self._run_pdf(cmd)
+            return
         if cmd and cmd.risk == "confirm":
             self.pending = cmd
             self.push_event("confirmation_required", cmd.__dict__)
             return
         if cmd and cmd.risk == "safe":
             self._say(self._execute(cmd))
+            return
+        # No built-in command matched — give user plugins a chance before the AI brain.
+        plugin_reply = plugins.try_handle(text)
+        if plugin_reply is not None:
+            self._say(plugin_reply)
             return
         self._run_chat(text)
 
@@ -134,6 +154,19 @@ class Orchestrator:
         except Exception as err:  # noqa: BLE001
             self._say(str(err))
 
+    def _run_pdf(self, cmd: ParsedCommand) -> None:
+        name = cmd.args["name"]
+        result = commands.read_pdf(name)
+        # read_pdf returns either a short problem/hint message or the PDF's extracted text.
+        problem_markers = ("I couldn't find", "PDF reading needs", "I couldn't read", "has no extractable")
+        if any(result.startswith(m) for m in problem_markers):
+            self._say(result)
+            return
+        # It's real text — ask the brain to summarise it.
+        self.push_event("thought", {"text": f"Reading {name} …", "timestamp": _now()})
+        prompt = f"Summarise this PDF ('{name}') clearly in a few sentences:\n\n{result}"
+        self._stream_reply([brain.ChatTurn("user", prompt)], summary_of=f"PDF summary: {name}")
+
     def _execute(self, cmd: ParsedCommand) -> str:
         try:
             return self._run_action(cmd)
@@ -170,6 +203,16 @@ class Orchestrator:
             secs = int(args["amount"]) * {"second": 1, "minute": 60, "hour": 3600}[args["unit"]]
             self._start_timer(secs)
             return f"Timer set for {args['amount']} {args['unit']}(s)."
+        if a == "list_files":
+            return commands.list_files(args.get("folder"))
+        if a == "open_file":
+            return commands.open_file(args["name"])
+        if a == "play":
+            return commands.play(args["query"], args.get("service", "youtube"))
+        if a == "backup":
+            return commands.backup()
+        if a == "self_update":
+            return commands.self_update()
         raise ValueError(f"Unknown action {a}")
 
     def _start_timer(self, seconds: int) -> None:
@@ -186,16 +229,30 @@ class Orchestrator:
         t.start()
 
     def _run_chat(self, text: str) -> None:
-        self._abort.clear()
         memory.save_message("user", text)
+        self.push_event("thought", {"text": f'Thinking: "{text}"', "timestamp": _now()})
+        turns = [brain.ChatTurn(m["role"], m["text"]) for m in memory.load_history(30)]
+        self._stream_reply(turns, fact_lines=self._memory_context(text))
+
+    def _memory_context(self, text: str) -> Optional[str]:
+        """Build the 'things I remember' block: all durable facts + notes relevant to `text`."""
+        lines: List[str] = []
+        for k, v in memory.recall_facts().items():
+            if not k.startswith("note-"):
+                lines.append(f"- {k}: {v}")
+        for k, v in memory.search_facts(text).items():
+            if k.startswith("note-"):
+                lines.append(f"- (a note you saved) {v}")
+        return "\n".join(lines) or None
+
+    def _stream_reply(self, turns: List["brain.ChatTurn"], fact_lines: Optional[str] = None,
+                      summary_of: Optional[str] = None) -> None:
+        """Shared streaming path: push deltas to the HUD, then speak the full reply."""
+        self._abort.clear()
         assistant_id = str(uuid.uuid4())
         self.push_event("chat_message", {"id": assistant_id, "role": "assistant", "text": "", "timestamp": _now(), "pending": True})
-        self.push_event("thought", {"text": f'Thinking: "{text}"', "timestamp": _now()})
 
         def worker():
-            turns = [brain.ChatTurn(m["role"], m["text"]) for m in memory.load_history(30)]
-            facts = memory.recall_facts()
-            fact_lines = "\n".join(f"- {k}: {v}" for k, v in facts.items() if not k.startswith("note-")) or None
             collected: List[str] = []
 
             def on_delta(delta: str, _pid: str):

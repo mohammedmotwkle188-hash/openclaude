@@ -77,6 +77,26 @@ def recall_facts() -> Dict[str, str]:
     return {k: v for k, v in _db().execute("SELECT key, body FROM facts").fetchall()}
 
 
+def search_facts(query: str, limit: int = 5) -> Dict[str, str]:
+    """Lightweight keyword recall over remembered facts/notes — no embeddings, just SQLite.
+
+    Splits the query into words and returns the most recently-updated facts whose key or
+    body contains any of those words. Used to feed relevant memory into the chat prompt.
+    """
+    words = [w for w in "".join(c if c.isalnum() else " " for c in query.lower()).split() if len(w) > 2]
+    if not words:
+        return {}
+    clause = " OR ".join("(LOWER(key) LIKE ? OR LOWER(body) LIKE ?)" for _ in words)
+    params: List[str] = []
+    for w in words:
+        params.extend([f"%{w}%", f"%{w}%"])
+    rows = _db().execute(
+        f"SELECT key, body FROM facts WHERE {clause} ORDER BY updated_at DESC LIMIT ?",
+        (*params, limit),
+    ).fetchall()
+    return {k: v for k, v in rows}
+
+
 def add_reminder(text: str, due_at: int) -> Dict:
     rid = str(uuid.uuid4())
     _db().execute("INSERT INTO reminders (id, text, due_at, done) VALUES (?,?,?,0)", (rid, text, due_at))

@@ -8,6 +8,7 @@ requests>=2.32     # weather / news / ElevenLabs REST
 openai>=1.40       # used to talk to Groq + OpenRouter (both OpenAI-API-compatible)
 edge-tts>=6.1      # free British text-to-speech (needs internet; plays via mpg123)
 SpeechRecognition>=3.10   # "Hi Jarvis" voice input (needs a mic + PyAudio — see README)
+pypdf>=4.0         # optional — enables "read pdf <name>" (imported lazily; safe if it fails)
 
 # Voice input also needs PyAudio, installed via apt (prebuilt), NOT pip, on Chromebook:
 #   sudo apt install -y python3-pyaudio flac
