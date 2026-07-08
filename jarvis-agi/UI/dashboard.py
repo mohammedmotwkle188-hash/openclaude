@@ -28,6 +28,20 @@ from CORE.orchestrator import orchestrator, parse_command
 
 WEB_DIR = Path(__file__).parent / "web"
 _window: Optional[webview.Window] = None
+_wake_listener = None  # ENGINE.stt.WakeWordListener, created on demand
+
+
+def _ensure_wake_listener():
+    global _wake_listener
+    if _wake_listener is None:
+        from ENGINE.stt import WakeWordListener
+
+        _wake_listener = WakeWordListener(
+            on_command=lambda text: orchestrator.handle_text(text),
+            on_wake=lambda: _push("voice_wake_triggered", {}),
+            on_listening=lambda v: _push("voice_listening_change", v),
+        )
+    return _wake_listener
 
 
 def _now() -> int:
@@ -125,10 +139,20 @@ class JarvisApi:
                                "timestamp": _now()})
         return True
 
-    # --- voice (output only; no mic on target hardware) ---
+    # --- voice input (best-effort; needs a working mic — see README) ---
     def voice_listen_once(self):
+        from ENGINE import stt
+
+        _push("voice_listening_change", True)
+        try:
+            text = stt.listen_once()
+        finally:
+            _push("voice_listening_change", False)
+        if text:
+            orchestrator.handle_text(text)
+            return True
         _push("notification", {"id": str(uuid.uuid4()), "title": "Voice",
-                               "body": "Microphone input isn't available on this device — please type.",
+                               "body": "Didn't catch that (or no microphone). Try again, or type.",
                                "level": "info", "timestamp": _now()})
         return False
 
@@ -167,7 +191,13 @@ class JarvisApi:
         return config.get_settings()
 
     def settings_set(self, partial: dict):
-        return config.set_settings(partial)
+        prev_wake = config.get_settings().get("wakeWordEnabled")
+        updated = config.set_settings(partial)
+        # Toggling "Wake Word" starts/stops the background microphone listener.
+        if "wakeWordEnabled" in partial and partial["wakeWordEnabled"] != prev_wake:
+            listener = _ensure_wake_listener()
+            listener.start() if partial["wakeWordEnabled"] else listener.stop()
+        return updated
 
     def api_keys_set(self, partial: dict):
         config.set_api_keys(partial)
@@ -241,4 +271,10 @@ def run() -> None:
         frameless=True,
         easy_drag=False,
     )
+
+    def on_loaded():
+        if config.get_settings().get("wakeWordEnabled"):
+            _ensure_wake_listener().start()
+
+    _window.events.loaded += on_loaded
     webview.start(debug=False)
