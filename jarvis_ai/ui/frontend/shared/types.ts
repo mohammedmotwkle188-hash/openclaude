@@ -13,7 +13,7 @@ export interface SystemStatsSnapshot {
   processes: { total: number; running: number; topByCpu: Array<{ name: string; cpuPercent: number }> };
 }
 
-export type AiProviderId = "anthropic" | "openai" | "gemini" | "ollama";
+export type AiProviderId = "anthropic" | "openai" | "gemini" | "openrouter" | "ollama";
 
 export interface ProviderStatus {
   id: AiProviderId;
@@ -125,6 +125,7 @@ export interface ApiKeySet {
   anthropic?: string;
   openai?: string;
   gemini?: string;
+  openrouter?: string;
   elevenlabs?: string;
   openweather?: string;
   newsapi?: string;

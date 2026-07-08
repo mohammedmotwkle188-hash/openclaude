@@ -23,14 +23,15 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "elevenLabsVoiceId": None,
     "ttsProvider": "auto",  # "auto" | "elevenlabs" | "edge" | "offline" — see voice/tts.py
     "speechRate": 1.05,
-    "providerOrder": ["anthropic", "openai", "gemini", "ollama"],
+    "providerOrder": ["anthropic", "openai", "gemini", "openrouter", "ollama"],
+    "openRouterModel": "openai/gpt-4o-mini",
     "ollamaBaseUrl": "http://127.0.0.1:11434",
     "weatherLocation": "London,UK",
     "hueBridgeIp": None,
     "hasPassphrase": False,
 }
 
-API_KEY_FIELDS = ["anthropic", "openai", "gemini", "elevenlabs", "openweather", "newsapi", "wolfram", "hue"]
+API_KEY_FIELDS = ["anthropic", "openai", "gemini", "openrouter", "elevenlabs", "openweather", "newsapi", "wolfram", "hue"]
 
 _cache: Optional[Dict[str, Any]] = None
 

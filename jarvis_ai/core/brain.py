@@ -188,10 +188,46 @@ class OllamaAdapter(BaseAdapter):
                     on_delta(content)
 
 
+class OpenRouterAdapter(BaseAdapter):
+    """OpenRouter (https://openrouter.ai) is OpenAI-API-compatible, so we reuse the OpenAI
+    client pointed at OpenRouter's base URL. One key unlocks many models (including free
+    ones); the model id is configurable via settings["openRouterModel"]."""
+
+    id = "openrouter"
+
+    def is_configured(self) -> bool:
+        return bool(config.get_api_key("openrouter"))
+
+    def stream_chat(self, turns, system_prompt, on_delta):
+        from openai import OpenAI
+
+        client = OpenAI(api_key=config.get_api_key("openrouter"), base_url="https://openrouter.ai/api/v1")
+        model = config.get_settings().get("openRouterModel") or "openai/gpt-4o-mini"
+        messages = [{"role": "system", "content": system_prompt}]
+        for t in turns:
+            if t.role == "system":
+                continue
+            if t.image:
+                content = [
+                    {"type": "text", "text": t.text},
+                    {"type": "image_url", "image_url": {"url": f"data:{t.image['mimeType']};base64,{t.image['base64']}"}},
+                ]
+            else:
+                content = t.text
+            messages.append({"role": t.role, "content": content})
+
+        stream = client.chat.completions.create(model=model, messages=messages, stream=True)
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                on_delta(delta)
+
+
 ADAPTERS: Dict[str, BaseAdapter] = {
     "anthropic": AnthropicAdapter(),
     "openai": OpenAiAdapter(),
     "gemini": GeminiAdapter(),
+    "openrouter": OpenRouterAdapter(),
     "ollama": OllamaAdapter(),
 }
 
