@@ -91,3 +91,40 @@ body {
 .vignette {
   animation: vignette-pulse 6s ease-in-out infinite;
 }
+
+/* ---------------------------------------------------------------------------
+   LITE MODE — applied when animations are off. Strips the GPU-expensive effects
+   (backdrop blur, big glows, the grid + scanline overlays) so the HUD renders
+   smoothly on low-end hardware like a 2.7 GB Chromebook. Same layout, far cheaper.
+   --------------------------------------------------------------------------- */
+.lite.bg-grid,
+.lite .bg-grid {
+  background-image: none;            /* the tiled grid forces extra paint work */
+}
+.lite .hud-panel {
+  background: #08131b;               /* flat fill instead of a translucent gradient */
+  backdrop-filter: none;             /* blur() is the single biggest cost — remove it */
+  box-shadow: none;
+}
+.lite .hud-panel::before {
+  display: none;                     /* drop the per-panel scanline overlay */
+}
+.lite .text-glow,
+.lite .text-glow-orange {
+  text-shadow: none;                 /* multi-layer text shadows repaint constantly */
+}
+/* Kill any leftover CSS animations globally in lite mode. */
+.lite *,
+.lite *::before,
+.lite *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Respect users who ask the OS for reduced motion, regardless of the toggle. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

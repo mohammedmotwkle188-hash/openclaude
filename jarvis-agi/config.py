@@ -14,7 +14,7 @@ CONFIG_FILE = APP_DIR / "config.json"
 
 DEFAULT_SETTINGS: Dict[str, Any] = {
     "theme": "dark",
-    "animationsEnabled": True,
+    "animationsEnabled": False,  # OFF by default -> "lite" mode, fast on low-RAM Chromebooks
     "wakeWordEnabled": False,  # no microphone on the target hardware; type instead
     "voiceEnabled": True,
     "voiceName": None,             # edge-tts voice; None -> DEFAULT_EDGE_VOICE

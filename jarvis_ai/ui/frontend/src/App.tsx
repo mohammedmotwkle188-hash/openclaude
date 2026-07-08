@@ -18,10 +18,16 @@ export default function App() {
 
   const animationsEnabled = settings?.animationsEnabled ?? true;
   const darker = settings?.theme === "darker";
+  // "Lite" mode: when animations are off we also drop the expensive CSS (backdrop blur,
+  // big glows, vignette) via a body-level class — this is what makes it fast on a weak
+  // Chromebook. See the `.lite` rules in globals.css.
+  const lite = !animationsEnabled;
 
   return (
-    <div className={`relative flex h-screen w-screen flex-col gap-3 overflow-hidden bg-grid p-3 ${darker ? "brightness-[0.85]" : ""}`}>
-      <div className="vignette pointer-events-none absolute inset-0" style={{ boxShadow: "inset 0 0 220px rgba(0,0,0,0.85)" }} />
+    <div className={`lite-root relative flex h-screen w-screen flex-col gap-3 overflow-hidden bg-grid p-3 ${darker ? "brightness-[0.85]" : ""} ${lite ? "lite" : ""}`}>
+      {!lite && (
+        <div className="vignette pointer-events-none absolute inset-0" style={{ boxShadow: "inset 0 0 220px rgba(0,0,0,0.85)" }} />
+      )}
 
       <TopBar />
 

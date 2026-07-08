@@ -85,12 +85,12 @@ class JarvisApi:
                 _push("stats_update", _collect_stats())
             except Exception:  # noqa: BLE001
                 pass
-            time.sleep(2)
+            time.sleep(5)  # slower polling = fewer re-renders on weak hardware
 
     def _net_loop(self):
         while True:
             _push("internet_status", _internet_online())
-            time.sleep(10)
+            time.sleep(30)
 
     # --- chat / orchestrator ---
     def chat_get_history(self):
