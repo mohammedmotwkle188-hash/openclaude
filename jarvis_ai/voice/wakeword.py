@@ -53,8 +53,11 @@ class WakeWordListener:
         recognizer = sr.Recognizer()
         try:
             mic = sr.Microphone()
-        except OSError as err:
-            logger.error("No microphone available for wake-word listening: %s", err)
+        except Exception as err:  # noqa: BLE001 - PyAudio missing raises AttributeError, no-mic raises OSError
+            # No working microphone (very common on Chromebooks / headless Linux, where PyAudio
+            # isn't installed). Wake-word listening just isn't available; the user types instead.
+            # Log a single clean line rather than letting the thread die with a scary traceback.
+            logger.info("Wake-word listening unavailable (no microphone/PyAudio). Type commands instead.")
             return
 
         with mic as source:

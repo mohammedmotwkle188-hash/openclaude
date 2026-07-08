@@ -171,16 +171,55 @@ def _speak_edge(text: str, voice: str, rate: float) -> None:
 
 
 def _play_file(path: str) -> None:
-    import pygame
+    # Try pygame/SDL first; if its audio backend isn't available (common in a Chromebook
+    # Linux container, where SDL can't find an output device), fall back to a command-line
+    # player. This makes voice output work on far more setups than pygame alone.
+    try:
+        import pygame
 
-    _ensure_mixer()
-    pygame.mixer.music.load(path)
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy():
-        if _should_stop.is_set():
-            pygame.mixer.music.stop()
-            break
-        time.sleep(0.05)
+        _ensure_mixer()
+        pygame.mixer.music.load(path)
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            if _should_stop.is_set():
+                pygame.mixer.music.stop()
+                break
+            time.sleep(0.05)
+        return
+    except Exception as err:  # noqa: BLE001
+        logger.info("pygame audio unavailable (%s), trying a command-line player instead.", err)
+
+    _play_file_cli(path)
+
+
+def _play_file_cli(path: str) -> None:
+    """Plays an mp3 via whichever common CLI player is installed. On Debian/Crostini,
+    `sudo apt install mpg123` or `ffmpeg` provides one; see README for the one-liner."""
+    import shutil
+    import subprocess
+
+    players = [
+        ["mpg123", "-q", path],
+        ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", path],
+        ["cvlc", "--play-and-exit", "--intf", "dummy", path],
+        ["paplay", path],
+    ]
+    for cmd in players:
+        if shutil.which(cmd[0]):
+            try:
+                proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                while proc.poll() is None:
+                    if _should_stop.is_set():
+                        proc.terminate()
+                        break
+                    time.sleep(0.05)
+                return
+            except Exception as err:  # noqa: BLE001
+                logger.info("Player %s failed: %s", cmd[0], err)
+                continue
+    logger.warning(
+        "No working audio player found. Install one with:  sudo apt install -y mpg123  (Debian/Crostini)."
+    )
 
 
 def _speak_offline(text: str, rate: float) -> None:

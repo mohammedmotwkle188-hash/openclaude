@@ -126,7 +126,13 @@ class JarvisApi:
     def voice_list_elevenlabs_voices(self):
         from voice import tts
 
-        return tts.list_elevenlabs_voices()
+        # An invalid/unauthorized ElevenLabs key (401) shouldn't spew a traceback into the
+        # terminal every time Settings opens — just return no voices and log it quietly.
+        try:
+            return tts.list_elevenlabs_voices()
+        except Exception as err:  # noqa: BLE001
+            logger.info("Couldn't list ElevenLabs voices (key missing or invalid): %s", err)
+            return []
 
     # --- memory ---
     def memory_set_passphrase(self, passphrase: str):
