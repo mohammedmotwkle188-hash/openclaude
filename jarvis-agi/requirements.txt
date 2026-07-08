@@ -1,0 +1,12 @@
+# JARVIS-AGI — lean dependencies, tuned for a low-RAM Chromebook (Crostini) on Python 3.13.
+# Deliberately NO opencv / mediapipe / pyaudio / pygame / cryptography — those caused the
+# painful installs and don't work on this hardware anyway.
+
+pywebview>=5.3     # the HUD window (uses the system GTK/WebKit via python3-gi, installed by apt)
+psutil>=6.1        # live system stats
+requests>=2.32     # weather / news / ElevenLabs REST
+openai>=1.40       # used to talk to Groq + OpenRouter (both OpenAI-API-compatible)
+edge-tts>=6.1      # free British text-to-speech (needs internet; plays via mpg123)
+
+# Optional — only if you choose the Gemini fallback provider:
+# google-generativeai>=0.8
