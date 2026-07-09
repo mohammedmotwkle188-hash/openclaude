@@ -1,4 +1,8 @@
-# JARVIS-AGI
+# JARVIS-AGI 2.1
+
+> **Your settings and API keys are safe.** They live in `~/.jarvis_agi/config.json` on
+> *your* machine — running `git pull`, `./install.sh`, or reinstalling **never** deletes
+> them. Saved Groq / Gemini / ElevenLabs keys survive every update.
 
 A **lean, reliable** rebuild of the J.A.R.V.I.S. desktop assistant, tuned to actually run
 on a low-spec Chromebook (ChromeOS Crostini Linux). Same holographic HUD you already saw,
@@ -127,6 +131,8 @@ jarvis-agi/
 ```
 
 ## Changelog vs. the older builds
+- **2.1:** release stamp; voice doctor (`test_voice.py`) that diagnoses "he can't hear me"
+  step by step; mic failures now show as an alert inside the app; clearer key-safety note.
 - **New:** one-command `install.sh` + `start.sh` — no more manual apt/venv/pip steps.
 - **New:** file manager, PDF reader (summarises via the brain), play music/video, data
   backup, self-update, and a drop-in **plugin system** — all Chromebook-safe.
