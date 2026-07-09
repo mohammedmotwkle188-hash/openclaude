@@ -71,6 +71,19 @@ def _rules():
         (r"^back ?up(?: my data| my stuff| everything)?$", "backup", "safe", lambda m: "Backup", lambda m: {}),
         (r"^(?:update yourself|update jarvis|check for updates)$", "self_update", "safe",
          lambda m: "Update", lambda m: {}),
+        # --- internet research (keyless: BBC RSS, Wikipedia, Reddit, DuckDuckGo) ---
+        (r"^(?:what'?s (?:in|on) the news(?: today)?|today'?s news|world news|news summary)\??$",
+         "research_news", "safe", lambda m: "News summary", lambda m: {"topic": "world"}),
+        (r"^(football|soccer|sport|sports|tech|technology|finance|business|money) news$",
+         "research_news", "safe", lambda m: f"{m.group(1).title()} news",
+         lambda m: {"topic": {"soccer": "football", "sports": "sport", "tech": "technology",
+                              "business": "finance", "money": "finance"}.get(m.group(1), m.group(1))}),
+        (r"^(?:search (?:the )?web for|look up|research) (.+)$", "research_web", "safe",
+         lambda m: f"Web: {m.group(1)[:24]}", lambda m: {"query": m.group(1)}),
+        (r"^wikipedia (.+)$", "research_wiki", "safe",
+         lambda m: f"Wikipedia: {m.group(1)[:24]}", lambda m: {"query": m.group(1)}),
+        (r"^(?:search )?reddit (?:for )?(.+)$", "research_reddit", "safe",
+         lambda m: f"Reddit: {m.group(1)[:24]}", lambda m: {"query": m.group(1)}),
     ]
 
 
@@ -105,6 +118,9 @@ class Orchestrator:
             return
         if cmd and cmd.action == "read_pdf":
             self._run_pdf(cmd)
+            return
+        if cmd and cmd.action.startswith("research_"):
+            self._run_research(cmd)
             return
         if cmd and cmd.risk == "confirm":
             self.pending = cmd
@@ -153,6 +169,40 @@ class Orchestrator:
                 self._say("Top headlines: " + ". ".join(i["title"] for i in items[:3]) if items else "No headlines right now.")
         except Exception as err:  # noqa: BLE001
             self._say(str(err))
+
+    def _run_research(self, cmd: ParsedCommand) -> None:
+        """Fetch from a free internet source, then let the brain summarise it out loud."""
+        from CORE import research
+
+        self.push_event("thought", {"text": f"Researching: {cmd.label} …", "timestamp": _now()})
+
+        def worker():
+            try:
+                if cmd.action == "research_news":
+                    topic = cmd.args.get("topic", "top")
+                    raw = research.news_digest(topic)
+                    prompt = (f"Here are today's {topic} headlines from BBC News:\n{raw}\n\n"
+                              "Give me a spoken-style summary of the most important stories in "
+                              "4-6 sentences. Facts only from the headlines; no invention.")
+                elif cmd.action == "research_wiki":
+                    raw = research.wikipedia_summary(cmd.args["query"])
+                    prompt = f"Summarise this clearly in 2-4 spoken sentences:\n{raw}"
+                elif cmd.action == "research_reddit":
+                    raw = research.reddit_digest(cmd.args["query"])
+                    prompt = (f"These are current Reddit discussions about '{cmd.args['query']}':\n{raw}\n\n"
+                              "Summarise what people are discussing in 3-5 sentences. These are "
+                              "opinions from forum users, not verified facts — say so.")
+                else:  # research_web
+                    raw = research.web_search(cmd.args["query"])
+                    prompt = (f"Web search results for '{cmd.args['query']}':\n{raw}\n\n"
+                              "Answer the query in 3-5 spoken sentences based only on these "
+                              "results, and note anything the sources disagree on.")
+            except Exception as err:  # noqa: BLE001 - network/source failure -> friendly line
+                self._say(str(err) or "That source isn't reachable right now.")
+                return
+            self._stream_reply([brain.ChatTurn("user", prompt)])
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _run_pdf(self, cmd: ParsedCommand) -> None:
         name = cmd.args["name"]

@@ -265,7 +265,7 @@ def run() -> None:
     global _window
     orchestrator.push_event = _push
     _window = webview.create_window(
-        "J.A.R.V.I.S. 2.1",
+        "J.A.R.V.I.S. 2.2",
         url=str(WEB_DIR / "index.html"),
         js_api=JarvisApi(),
         width=1440,

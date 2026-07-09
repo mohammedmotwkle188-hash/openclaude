@@ -5,7 +5,7 @@ from UI import dashboard
 
 
 def main() -> None:
-    print("[jarvis-agi] Starting J.A.R.V.I.S. 2.1 ...", flush=True)
+    print("[jarvis-agi] Starting J.A.R.V.I.S. 2.2 ...", flush=True)
     memory.init_db()
     plugins.load_plugins()
     dashboard.run()

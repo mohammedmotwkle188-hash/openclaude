@@ -123,13 +123,16 @@ def tell_joke() -> str:
 
 
 def weather_data(location: Optional[str] = None) -> dict:
-    """Structured weather for the HUD widget. Raises with a friendly message if no key."""
+    """Structured weather for the HUD widget. Uses your OpenWeather key if you set one,
+    otherwise the free keyless Open-Meteo service — so weather always works."""
     import requests
 
+    loc = (location or "").strip() or config.get_settings()["weatherLocation"]
     key = config.get_api_key("openweather")
     if not key:
-        raise RuntimeError("Add an OpenWeather key in Settings for live weather.")
-    loc = (location or "").strip() or config.get_settings()["weatherLocation"]
+        from CORE import research
+
+        return research.weather_now(loc)
     res = requests.get(
         "https://api.openweathermap.org/data/2.5/weather",
         params={"q": loc, "units": "metric", "appid": key}, timeout=10,
@@ -146,12 +149,15 @@ def weather_data(location: Optional[str] = None) -> dict:
 
 
 def news_data() -> list:
-    """Structured headlines for the HUD widget. Raises with a friendly message if no key."""
+    """Structured headlines for the HUD widget. Uses your NewsAPI key if you set one,
+    otherwise free BBC RSS headlines — so news always works."""
     import requests
 
     key = config.get_api_key("newsapi")
     if not key:
-        raise RuntimeError("Add a NewsAPI key in Settings for headlines.")
+        from CORE import research
+
+        return research.news_headlines()
     res = requests.get(
         "https://newsapi.org/v2/top-headlines",
         params={"language": "en", "pageSize": 6, "apiKey": key}, timeout=10,

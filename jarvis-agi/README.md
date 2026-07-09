@@ -1,4 +1,4 @@
-# JARVIS-AGI 2.1
+# JARVIS-AGI 2.2
 
 > **Your settings and API keys are safe.** They live in `~/.jarvis_agi/config.json` on
 > *your* machine — running `git pull`, `./install.sh`, or reinstalling **never** deletes
@@ -64,6 +64,11 @@ everything" Jarvis lives in `../jarvis_ai/` for a capable Windows/macOS/Linux ma
 - **PDFs:** `read pdf invoice` → Jarvis extracts the text and summarises it
 - **Media:** `play lofi beats on youtube`, `play daft punk on spotify`
 - **Web:** `open youtube`, `search google for tallest mountain`
+- **Internet research (no keys needed):** `what's in the news today`, `football news`,
+  `tech news`, `finance news`, `search the web for best chromebooks`, `wikipedia alan turing`,
+  `reddit for premier league` — Jarvis fetches free public sources (BBC News, Wikipedia,
+  Reddit, DuckDuckGo) and speaks a summary. He tells you when something is forum opinion
+  rather than verified fact.
 - **System:** `set volume to 40`, `what's the time`, `tell me a joke`
 - **Memory:** `remember that my dog's name is Rex` → later ask "what's my dog's name?"
 - **Maintenance:** `backup my data`, `update yourself`
@@ -131,6 +136,10 @@ jarvis-agi/
 ```
 
 ## Changelog vs. the older builds
+- **2.2:** internet research pack — news summaries by topic (world/football/tech/finance via
+  BBC RSS), web search (DuckDuckGo), Wikipedia, and Reddit discussions, all **keyless** and
+  summarised aloud by the brain. Weather & News widgets now work **without** any API key
+  (Open-Meteo / BBC RSS fallbacks). Faster failover on flaky wifi (30s AI timeout).
 - **2.1:** release stamp; voice doctor (`test_voice.py`) that diagnoses "he can't hear me"
   step by step; mic failures now show as an alert inside the app; clearer key-safety note.
 - **New:** one-command `install.sh` + `start.sh` — no more manual apt/venv/pip steps.
