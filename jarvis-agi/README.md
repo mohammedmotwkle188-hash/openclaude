@@ -70,12 +70,25 @@ everything" Jarvis lives in `../jarvis_ai/` for a capable Windows/macOS/Linux ma
 
 Voice replies work out of the box. To also **talk** to Jarvis:
 1. ChromeOS **Settings → Advanced → Developers → Linux → "Allow Linux to access your
-   microphone"** → ON.
+   microphone"** → ON. **Then restart Linux** (right-click the Terminal icon on the shelf →
+   *Shut down Linux*, reopen it) — the toggle only takes effect after a restart.
 2. `install.sh` already installed the mic packages (`python3-pyaudio`, `flac`).
 3. Launch Jarvis, open **Settings** (gear), turn **Wake Word** ON, and say "Jarvis…".
 
-If it doesn't hear you, the terminal prints a line starting with `[stt]` explaining why. The
-mic in the Linux container can be unreliable — you can always just type.
+### He can't hear me — the voice doctor 🩺
+
+Run the built-in diagnostic. It checks every link in the chain (library → driver → ChromeOS
+mic switch → real recording → speech-to-text → wake-word setting) and tells you in plain
+words exactly what's broken and how to fix it:
+
+```bash
+cd ~/openclaude/jarvis-agi
+./.venv/bin/python test_voice.py
+```
+
+Follow what it prints, fix that one thing, and run it again until it says ALL CHECKS PASSED.
+Jarvis also shows a "Voice problem" notification inside the app if the wake listener can't
+reach a microphone. The mic in the Linux container can be unreliable — you can always type.
 
 ## Plugins — teach Jarvis new commands
 

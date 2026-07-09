@@ -40,6 +40,10 @@ def _ensure_wake_listener():
             on_command=lambda text: orchestrator.handle_text(text),
             on_wake=lambda: _push("voice_wake_triggered", {}),
             on_listening=lambda v: _push("voice_listening_change", v),
+            on_error=lambda msg: _push("notification", {
+                "id": str(uuid.uuid4()), "title": "Voice problem", "body": msg,
+                "level": "error", "timestamp": _now(),
+            }),
         )
     return _wake_listener
 

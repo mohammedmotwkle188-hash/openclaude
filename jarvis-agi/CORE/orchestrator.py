@@ -165,7 +165,7 @@ class Orchestrator:
         # It's real text — ask the brain to summarise it.
         self.push_event("thought", {"text": f"Reading {name} …", "timestamp": _now()})
         prompt = f"Summarise this PDF ('{name}') clearly in a few sentences:\n\n{result}"
-        self._stream_reply([brain.ChatTurn("user", prompt)], summary_of=f"PDF summary: {name}")
+        self._stream_reply([brain.ChatTurn("user", prompt)])
 
     def _execute(self, cmd: ParsedCommand) -> str:
         try:
@@ -245,8 +245,7 @@ class Orchestrator:
                 lines.append(f"- (a note you saved) {v}")
         return "\n".join(lines) or None
 
-    def _stream_reply(self, turns: List["brain.ChatTurn"], fact_lines: Optional[str] = None,
-                      summary_of: Optional[str] = None) -> None:
+    def _stream_reply(self, turns: List["brain.ChatTurn"], fact_lines: Optional[str] = None) -> None:
         """Shared streaming path: push deltas to the HUD, then speak the full reply."""
         self._abort.clear()
         assistant_id = str(uuid.uuid4())

@@ -64,10 +64,12 @@ class WakeWordListener:
         on_command: Callable[[str], None],
         on_wake: Callable[[], None],
         on_listening: Callable[[bool], None],
+        on_error: Optional[Callable[[str], None]] = None,
     ) -> None:
         self.on_command = on_command
         self.on_wake = on_wake
         self.on_listening = on_listening
+        self.on_error = on_error or (lambda msg: None)
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._active = False
@@ -94,6 +96,11 @@ class WakeWordListener:
             mic = sr.Microphone()
         except Exception as err:  # noqa: BLE001
             _log(f"Wake word off — no working microphone ({err}). Enable Chromebook Linux mic + install PyAudio.")
+            self.on_error(
+                "I can't reach a microphone, so I can't hear 'Jarvis'. Run the voice doctor "
+                "in the terminal — it finds the exact problem and tells you the fix:  "
+                "./.venv/bin/python test_voice.py"
+            )
             return
 
         with mic as source:
