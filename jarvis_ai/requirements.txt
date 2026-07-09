@@ -1,0 +1,46 @@
+# Core
+pywebview>=5.3
+psutil>=6.1
+requests>=2.32
+cryptography>=43.0
+beautifulsoup4>=4.12
+
+# AI providers (only the ones you actually use need a valid API key at runtime)
+anthropic>=0.39
+openai>=1.57
+google-generativeai>=0.8
+
+# Voice
+SpeechRecognition>=3.10
+PyAudio>=0.2.14        # microphone backend for SpeechRecognition — see README for install notes
+edge-tts>=6.1          # free fallback TTS if no ElevenLabs key is configured
+pyttsx3>=2.90          # fully offline TTS fallback if neither ElevenLabs nor edge-tts is reachable
+pygame>=2.6            # audio playback for both ElevenLabs and edge-tts output, with clean interrupt support
+# ElevenLabs itself needs no extra package — voice/tts.py calls its REST API with `requests` above.
+
+# Vision / screen / automation
+pyautogui>=0.9.54
+pytesseract>=0.3.13    # requires the system `tesseract` binary — see README
+Pillow>=10.4
+opencv-contrib-python>=4.9   # face detection/recognition (LBPH) — the "contrib" build includes cv2.face
+mediapipe==0.10.14           # hand-gesture + eye/iris landmarks; pinned — 0.10.15+ dropped the mp.solutions API
+
+# Google Calendar (optional; only imported when calendar features are used)
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.2
+
+# --- Shared constraint: mediapipe (above) requires protobuf <5, but the newest
+# google-api-core wants protobuf >=5.29, which can't both be satisfied. Pinning protobuf
+# and google-api-core to a mutually compatible pair keeps the vision AND Google-Calendar/
+# Gemini features installable together. Verified to import and run fine at these versions.
+protobuf>=4.25.3,<5
+google-api-core<2.25
+
+# Browser automation (optional, only used by tools.browser.automate_fetch_text)
+playwright>=1.47
+
+# Windows-only extras (safe to leave installed cross-platform; imported lazily)
+pycaw>=20240210; sys_platform == "win32"
+comtypes>=1.4; sys_platform == "win32"
+screen-brightness-control>=0.24; sys_platform != "linux"
+keyboard>=0.13.5; sys_platform == "win32"

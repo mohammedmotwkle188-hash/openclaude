@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      No CSP meta tag here: this page is only ever loaded from a local file:// path by
+      pywebview, never given untrusted remote content, and file:// origins are handled
+      inconsistently enough across WebView2/WKWebView/WebKitGTK that a strict 'self'
+      policy risks silently blocking the app's own script/style with no console visible
+      to debug it from. Electron's build (jarvis-desktop/) keeps a real CSP since that
+      app also loads a live dev server URL during development.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <title>J.A.R.V.I.S.</title>
+  </head>
+  <body class="bg-void">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

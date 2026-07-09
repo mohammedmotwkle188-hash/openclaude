@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Frontend build tooling (see ui/frontend/) — only its output (ui/web/) ships with the app.
+ui/frontend/node_modules/
+ui/frontend/dist/
+ui/frontend/*.tsbuildinfo
+ui/frontend/package-lock.json
