@@ -21,17 +21,30 @@ function on(channel: string, cb: Listener): () => void {
 };
 
 function callApi<T = any>(name: string, ...args: any[]): Promise<T> {
+  // window.pywebview.api can exist while still being (partially) empty — pywebview attaches
+  // methods asynchronously after page load, and on slow hardware that gap is long enough for
+  // early widget calls (stats/weather/news) to land in it. So: retry until the *specific*
+  // method appears (up to ~15s) instead of failing on the first look.
   return new Promise((resolve, reject) => {
-    const invoke = () => {
-      const api = (window as any).pywebview?.api;
-      if (!api || typeof api[name] !== "function") {
-        reject(new Error(`Bridge method "${name}" is not exposed by the Python backend.`));
+    let settled = false;
+    let attempts = 0;
+    const tryInvoke = () => {
+      if (settled) return;
+      const fn = (window as any).pywebview?.api?.[name];
+      if (typeof fn === "function") {
+        settled = true;
+        fn(...args).then(resolve).catch(reject);
         return;
       }
-      api[name](...args).then(resolve).catch(reject);
+      if (attempts++ < 75) {
+        setTimeout(tryInvoke, 200);
+      } else {
+        settled = true;
+        reject(new Error(`Bridge method "${name}" is not exposed by the Python backend.`));
+      }
     };
-    if ((window as any).pywebview?.api) invoke();
-    else window.addEventListener("pywebviewready", invoke, { once: true });
+    tryInvoke();
+    window.addEventListener("pywebviewready", tryInvoke, { once: true });
   });
 }
 

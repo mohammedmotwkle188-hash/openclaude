@@ -69,7 +69,10 @@ class _OpenAICompatibleAdapter(BaseAdapter):
     def stream_chat(self, turns, system_prompt, on_delta):
         from openai import OpenAI
 
-        client = OpenAI(api_key=config.get_api_key(self.key_field), base_url=self.base_url)
+        # Explicit timeout: the library default is 10 minutes, which on a flaky connection
+        # looks like Jarvis froze. Fail in ~30s and let the router try the next provider.
+        client = OpenAI(api_key=config.get_api_key(self.key_field), base_url=self.base_url,
+                        timeout=30.0, max_retries=1)
         messages = [{"role": "system", "content": system_prompt}]
         for t in turns:
             if t.role == "system":
@@ -105,7 +108,13 @@ class GeminiAdapter(BaseAdapter):
         return bool(config.get_api_key("gemini"))
 
     def stream_chat(self, turns, system_prompt, on_delta):
-        import google.generativeai as genai  # imported lazily; optional dependency
+        try:
+            import google.generativeai as genai  # imported lazily; optional dependency
+        except ImportError:
+            raise RuntimeError(
+                "Gemini fallback isn't installed (optional). To enable it: "
+                "pip install google-generativeai — or just remove the Gemini key."
+            ) from None
 
         genai.configure(api_key=config.get_api_key("gemini"))
         model_name = config.get_settings().get("geminiModel") or "gemini-2.0-flash"
